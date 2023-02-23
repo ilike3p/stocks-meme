@@ -1,110 +1,110 @@
-const fmpApiKey = '3fcf836c643e57ea595c320853b52635';
-const redditApiUrl = 'https://tradestie.com/api/v1/apps/reddit';
-const modal = document.querySelector('.modal');
-const modalOpenButton = document.querySelector('.modal-open');
+// Select DOM elements
+const openmodal = document.querySelector('.modal-open');
 const overlay = document.querySelector('.modal-overlay');
-const modalCloseButtons = document.querySelectorAll('.modal-close');
+const closemodal = document.querySelectorAll('.modal-close');
+const mainContainer = document.getElementById('mstocks');
 const tickerInput = document.getElementById('tickersymbol');
 const modalHeader = document.getElementById('modal-header');
 const modalBody = document.getElementById('modal-body');
-const mainContainer = document.getElementById('mstocks');
-const ESCAPE_KEY_CODE = 27;
-const INVALID_TICKER_MESSAGE = 'Invalid Ticker Symbol';
 
-modalOpenButton.addEventListener('click', (event) => {
+// Bind event listeners
+openmodal.addEventListener('click', handleOpenModal);
+overlay.addEventListener('click', toggleModal);
+tickerInput.addEventListener('keydown', handleTickerInput);
+closemodal.forEach(el => el.addEventListener('click', toggleModal));
+
+// Fetch Wallstreetbets top ten stocks every 15 minutes
+setInterval(fetchTopTenStocks, 1000 * 60 * 15);
+fetchTopTenStocks();
+
+// Functions
+
+function handleOpenModal(event) {
   event.preventDefault();
   openModal(tickerInput.value.trim());
-});
-
-overlay.addEventListener('click', toggleModal);
-
-modalCloseButtons.forEach((button) => {
-  button.addEventListener('click', toggleModal);
-});
-
-document.addEventListener('keydown', (event) => {
-  if (event.code === ESCAPE_KEY_CODE && document.body.classList.contains('modal-active')) {
-    toggleModal();
-  }
-});
-
-function openModal(tickerSymbol) {
-  fmpApi(tickerSymbol);
 }
 
-function toggleModal () {
+function handleTickerInput(event) {
+  if (event.key === 'Enter') {
+    handleOpenModal(event);
+  }
+}
+
+function openModal(tickerSymbol) {
+  if (tickerSymbol) {
+    fmpApi(tickerSymbol);
+  } else {
+    console.error('Invalid ticker symbol');
+  }
+}
+
+function toggleModal() {
+  document.body.classList.toggle('modal-active');
+  const modal = document.querySelector('.modal');
   modal.classList.toggle('opacity-0');
   modal.classList.toggle('pointer-events-none');
-  document.body.classList.toggle('modal-active');
   clearModal();
+}
+
+function fetchTopTenStocks() {
+  fetch('https://tradestie.com/api/v1/apps/reddit')
+    .then(response => response.json())
+    .then(data => {
+      const sortedData = data.sort((a, b) => b.sentiment_score - a.sentiment_score);
+      mainContainer.innerHTML = '';
+      sortedData.slice(0, 10).forEach(stock => {
+        const div = document.createElement('a');
+        div.href = '';
+        div.textContent = stock.ticker;
+        div.onclick = event => {
+          event.preventDefault();
+          openModal(stock.ticker);
+        };
+        const div2 = document.createElement('div');
+        div2.textContent = stock.sentiment_score;
+        mainContainer.appendChild(div);
+        mainContainer.appendChild(div2);
+      });
+    })
+    .catch(error => console.error(error));
 }
 
 function fmpApi(tickerSymbol) {
   clearModal();
-  toggleModal();
-  const requestUrl = `https://financialmodelingprep.com/api/v3/profile/${tickerSymbol}?apikey=${fmpApiKey}`;
-
-  if (tickerSymbol.length > 0) {
-    fetch(requestUrl)
-      .then(response => response.json())
-      .then(stonkData => {
-        if (stonkData.length > 0) {
-          modalHeader.innerHTML = stonkData[0].companyName;
-          const objectArray = Object.entries(stonkData[0]);
-          for (let i = 0; i < 10; i++) {
-            const label = document.createElement('div');
-            const stonkValue = document.createElement('div');
-            label.innerHTML = objectArray[i][0];
-            stonkValue.innerHTML = objectArray[i][1];
-            modalBody.appendChild(label);
-            modalBody.appendChild(stonkValue);
-          }
-          storeTickers();
-        } else {
-          invalidTickerSymbol(modalBody);
-        }
-      })
-      .catch(error => console.log(error));
-  } else {
-    invalidTickerSymbol(modalBody);
-  }
+  fetch(`https://financialmodelingprep.com/api/v3/profile/${tickerSymbol}?apikey=3fcf836c643e57ea595c320853b52635`)
+    .then(response => response.json())
+    .then(data => {
+      if (data.length > 0) {
+        modalHeader.textContent = data[0].companyName;
+        Object.entries(data[0]).slice(0, 10).forEach(([key, value]) => {
+          const label = document.createElement('div');
+          const stonkValue = document.createElement('div');
+          label.textContent = key;
+          stonkValue.textContent = value;
+          modalBody.appendChild(label);
+          modalBody.appendChild(stonkValue);
+        });
+        localStorage.setItem('ticker', tickerSymbol);
+      } else {
+        invalidTickerSymbol();
+      }
+    })
+    .catch(error => console.error(error));
 }
 
-function invalidTickerSymbol(modalBody) {
+function invalidTickerSymbol() {
   const label = document.createElement('div');
-  label.innerHTML = INVALID_TICKER_MESSAGE;
+  label.textContent = 'Invalid ticker symbol';
   modalBody.appendChild(label);
   tickerInput.value = '';
 }
 
 function clearModal() {
+  modalHeader.textContent = '';
   modalBody.innerHTML = '';
-  modalHeader.innerHTML = '';
-}
-
-function storeTickers() {
-  const symbol = tickerInput.value;
-  localStorage.setItem('ticker', symbol);
 }
 
 function loadLastTicker() {
   const lastTicker = localStorage.getItem('ticker');
   if (lastTicker) {
-    tickerInput.value = lastTicker;
-  }
-}
-
-function appendData(data) {
-  const sortedData = data.sort((firstEl, secondEl) => {
-    if (firstEl.sentiment_score > secondEl.sentiment_score) {
-      return -1;
-    } else if (firstEl.sentiment_score < secondEl.sentiment_score) {
-      return 1;
-    } else {
-      return 0;
-    }
-  });
-
-  mainContainer.innerHTML = '';
-
-  for (let i = 0);
+  }};
